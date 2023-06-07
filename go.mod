@@ -7,6 +7,7 @@ require (
 	github.com/cosmos/btcutil v1.0.5
 	github.com/cosmos/cosmos-sdk v0.47.2
 	github.com/pactus-project/pactus v0.11.0
+	github.com/penumbra-zone/penumbra v0.53.1
 )
 
 require (
