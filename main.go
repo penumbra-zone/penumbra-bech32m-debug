@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
 	"github.com/pactus-project/pactus/util/bech32m"
 	// We import the local buf-built protos pulled from the penumbra repo so that
 	// we have access to the new "AltBech32m" field on the Address proto struct.
@@ -71,19 +72,19 @@ func via_pclientd() (bool, error) {
 
 	ctx := context.TODO()
 	fmt.Println("Requesting address via pclientd...")
-	resp, err := viewClient.AddressByIndex(ctx, addressReq)
+	addressResponse, err := viewClient.AddressByIndex(ctx, addressReq)
 	if err != nil {
 		fmt.Println("Encountered error =(", err)
 		return false, err
 	}
-	addr_bytes := resp.Address.Inner
-	fmt.Println("We received a byte slice of length:", len(addr_bytes))
+	addrBytes := addressResponse.Address.Inner
+	fmt.Println("We received a byte slice of length:", len(addrBytes))
 
 	// Hardcode the human-readable part of the address
 	hrp := "penumbrav2t"
 	// Decode from Base256. Otherwise, the `bech32m.Encode` string will error out on values
 	// in our slice greater than 32.
-	penumbra_addr_2, err := bech32m.EncodeFromBase256(hrp, addr_bytes)
+	penumbra_addr_2, err := bech32m.EncodeFromBase256(hrp, addrBytes)
 	if err != nil {
 		fmt.Println("Failed to encode address bytes as bech32m", err)
 		return false, err
@@ -93,6 +94,34 @@ func via_pclientd() (bool, error) {
 		fmt.Printf("The two addresses are not the same:\n\t* %s\n\t* %s\n", penumbra_addr, penumbra_addr_2)
 	} else {
 		fmt.Printf("As expected, the two addresses were identical round-trip::\n\t* %s\n\t* %s\n", penumbra_addr, penumbra_addr_2)
+	}
+
+	// Use pclientd connection to look up balance info.
+	balanceRequest := &penumbraview.BalanceByAddressRequest{
+		Address: addressResponse.Address,
+	}
+	// The BalanceByAddress method returns a stream response, containing
+	// zero-or-more balances.
+	balanceStream, err := viewClient.BalanceByAddress(ctx, balanceRequest)
+	var balances []penumbraview.BalanceByAddressResponse
+	for {
+		balance, err := balanceStream.Recv()
+		if err != nil {
+			if err == io.EOF {
+				break
+			} else {
+				fmt.Println("Failed to get balance: ", err)
+				return false, err
+			}
+		}
+		// fmt.Printf("Balance response looks like: %+q\n", balance)
+		balances = append(balances, *balance)
+	}
+	fmt.Println("What do I have in my wallet? Behold:")
+	for _, b := range balances {
+		// N.B. the `Hi` and `Lo` fields on Amount denote high/low order bytes:
+		// https://github.com/penumbra-zone/penumbra/blob/v0.54.1/crates/core/crypto/src/asset/amount.rs#L220-L240
+		fmt.Printf("%v '%v'\n", b.Asset, b.Amount.Lo)
 	}
 
 	return true, nil
