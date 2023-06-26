@@ -23,19 +23,22 @@ import (
 func bech32m_round_trip() {
 	penumbra_addr := "penumbrav2t1fc6gvmyz749cvf7qyz2cgqyw8aq2zf7cm005uvmt4l5dtew5xuvdtuvdrcpwn740xlgx9saeyqtqftwnw57q3vkyd73teckwm9jkwcmwcxml7q7klu9smekthxpa2575urjltu"
 	fmt.Println("Penumbra address is:", penumbra_addr)
-	hrp, type_byte, as_b, err := bech32m.DecodeToBase256WithTypeNoLimit(penumbra_addr)
+	// hrp, type_byte, as_b, err := bech32m.DecodeToBase256WithTypeNoLimit(penumbra_addr)
 	// hrp, as_b, err := bech32m.DecodeToBase256(penumbra_addr)
-	fmt.Println("Type byte came back as:", type_byte)
+	// fmt.Println("Type byte came back as:", type_byte)
+	hrp, as_b, err := bech32m.DecodeNoLimit(penumbra_addr)
 	if err != nil {
 		fmt.Println("Failed to decode string address to bytes via bech32m:", err)
 	}
 	fmt.Println("Penumbra human-readable prefix:", hrp)
+	// This byte slice is suitable for passing back to `bech32m.Encode`, as done below,
+	// but is *not* suitable for passing to gRPC methods like `AddressByIndexRequest`.
 	fmt.Println("Penumbra address decoded to bytes looks like:", as_b)
 
 	// Try via bech32m
 	var p2 string
 	fmt.Println("Using bech32m nolimit conversion")
-	p2, err = bech32m.EncodeFromBase256(hrp, as_b)
+	p2, err = bech32m.Encode(hrp, as_b)
 	if err != nil {
 		fmt.Println("Failed to convert encode bytes to string via bech32m")
 	}
@@ -155,7 +158,7 @@ func via_protos() {
 }
 
 func main() {
-	// bech32m_round_trip()
+	bech32m_round_trip()
 	// via_protos()
 	via_pclientd()
 }
