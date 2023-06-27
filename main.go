@@ -16,10 +16,12 @@ import (
 	"reflect"
 )
 
-// NOT WORKING. Intended to demonstrate how to convert a string representation of a Penumbra address
+// Mostly working! Intended to demonstrate how to convert a string representation of a Penumbra address
 // into a base256-encoded byte slice of length 80, so that it can be passed via protos to pclientd.
 // As of v0.55.0, we can just pass bech32m strings as a field in the Address proto struct, which
-// will be a lot more ergonomic.
+// will be a lot more ergonomic. What this function does is use a bech32m without-limit decode/encode
+// loop, and gets back the original address string. What it *doesn't* do is create a bytes representation
+// that can be used with the gRPC methods, e.g. AddressByIndexRequest. That's still TK.
 func bech32m_round_trip() {
 	penumbra_addr := "penumbrav2t1fc6gvmyz749cvf7qyz2cgqyw8aq2zf7cm005uvmt4l5dtew5xuvdtuvdrcpwn740xlgx9saeyqtqftwnw57q3vkyd73teckwm9jkwcmwcxml7q7klu9smekthxpa2575urjltu"
 	fmt.Println("Penumbra address is:", penumbra_addr)
